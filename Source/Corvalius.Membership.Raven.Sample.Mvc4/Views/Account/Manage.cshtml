@@ -1,0 +1,39 @@
+﻿@model Corvalius.Membership.Raven.Sample.Mvc4.Models.LocalPasswordModel
+@{
+    ViewBag.Title = "Manage Account";
+}
+
+<hgroup class="title">
+    <h1>@ViewBag.Title.</h1>
+</hgroup>
+
+<p class="message-success">@ViewBag.StatusMessage</p>
+
+<p>You're logged in as <strong>@User.Identity.Name</strong>.</p>
+
+@if (ViewBag.HasLocalPassword)
+{
+    @Html.Partial("_ChangePasswordPartial")
+}
+else
+{
+    @Html.Partial("_SetPasswordPartial")
+}
+
+@if ( Roles.IsUserInRole("Admin") )
+{
+    <p>@Html.ActionLink( "Disable your admin privileges", "DisableAdminRole")</p>
+}
+else
+{
+    <p>@Html.ActionLink( "Enable your admin privileges", "EnableAdminRole")</p>
+}
+
+<section id="externalLogins">
+    @Html.Action("RemoveExternalLogins")
+    @Html.Action("ExternalLoginsList", new { ReturnUrl = ViewBag.ReturnUrl })
+</section>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
