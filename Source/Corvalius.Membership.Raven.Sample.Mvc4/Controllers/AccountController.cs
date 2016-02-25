@@ -4,7 +4,6 @@ using DotNetOpenAuth.AspNet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Transactions;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Security;
@@ -230,16 +229,12 @@ namespace Corvalius.Membership.Raven.Sample.Mvc4.Controllers
             if (ownerAccount == User.Identity.Name)
             {
                 // Use a transaction to prevent the user from deleting their last login credential
-                using (var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.Serializable }))
-                {
-                    bool hasLocalAccount = WebSecurity.HasLocalAccount(WebSecurity.GetUserId(User.Identity.Name));
-                    if (hasLocalAccount || OAuthWebSecurity.GetAccountsFromUserName(User.Identity.Name).Count > 1)
-                    {
-                        OAuthWebSecurity.DeleteAccount(provider, providerUserId);
-                        message = ManageMessageId.RemoveLoginSuccess;
 
-                        scope.Complete();
-                    }
+                bool hasLocalAccount = WebSecurity.HasLocalAccount(WebSecurity.GetUserId(User.Identity.Name));
+                if (hasLocalAccount || OAuthWebSecurity.GetAccountsFromUserName(User.Identity.Name).Count > 1)
+                {
+                    OAuthWebSecurity.DeleteAccount(provider, providerUserId);
+                    message = ManageMessageId.RemoveLoginSuccess;
                 }
             }
 

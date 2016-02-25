@@ -129,10 +129,12 @@ namespace Corvalius.Membership.Raven
             }
         }
 
-        public static void InitializeDatabaseConnection(IDocumentStore store)
+        public static void InitializeDatabaseConnection(IDocumentStore documentStore)
         {
             if ( !preAppStartInitialized )
-                PreAppStartInit();
+                PreAppStartInit();                        
+
+            var store = documentStore;
 
             store.Conventions.RegisterIdConvention<UserEntity>((dbName, db, user) => UserEntity.IdPrefix + EncodeNonAsciiCharacters(user.Name));
             store.Conventions.RegisterAsyncIdConvention<UserEntity>((dbName, db, user) => new CompletedTask<string>(UserEntity.IdPrefix + EncodeNonAsciiCharacters(user.Name)));

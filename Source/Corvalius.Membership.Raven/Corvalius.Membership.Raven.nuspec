@@ -11,10 +11,10 @@
     <copyright>Copyright Corvalius 2014</copyright>
     <tags>membership, ravendb</tags>
     <dependencies>
-      <dependency id="DotNetOpenAuth.AspNet" version="4.3.1.13153" />
-      <dependency id="Microsoft.AspNet.WebApi" version="4.0.30506.0" />
-      <dependency id="Microsoft.Net.Http" version="2.2.15" />
-      <dependency id="RavenDB.Client" version="2.5.2700" />
+      <dependency id="DotNetOpenAuth.AspNet" version="4.3.4.13329" />
+      <dependency id="Microsoft.AspNet.WebApi" version="5.2.3" />
+      <dependency id="Microsoft.Net.Http" version="2.2.29" />
+      <dependency id="RavenDB.Client" version="3.0.3690" />
     </dependencies>
   </metadata>
   

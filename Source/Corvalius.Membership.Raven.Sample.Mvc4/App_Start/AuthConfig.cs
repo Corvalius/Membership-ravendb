@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Corvalius.Membership.Raven.Sample.Mvc4.App_Start;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -39,6 +40,9 @@ namespace Corvalius.Membership.Raven.Sample.Mvc4
             //Twitter
             OAuthWebSecurity.RegisterOAuthClient(BuiltInOAuthClient.Twitter, consumerKey: "zS70aeHzSnCDJA0zK4TZlA", consumerSecret: "Z3olNRfRdREEcY8DKii4TLjNeZAQp70krjVzCvxmc");
             providerIcons["twitter"] = "../Content/images/twitter.png";
+
+            OAuthWebSecurity.RegisterClient(new WindowsClient());
+            providerIcons["windows"] = "../Content/images/live.png";
 
             //displayName: "Facebook",
             //extraData: facebookExtraData);
