@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Corvalius.Identity.RavenDB", "Source\Corvalius.Identity.RavenDB\Corvalius.Identity.RavenDB.xproj", "{869A0DA7-70E5-47D1-AD30-1AE1E95561EC}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Corvalius.Identity.Sample", "Corvalius.Identity.Sample\Corvalius.Identity.Sample.xproj", "{4F620885-EB64-4A40-83B8-15B7D917FA7E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0442094F-56B7-43D8-8134-AC34831A74CC}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{869A0DA7-70E5-47D1-AD30-1AE1E95561EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{869A0DA7-70E5-47D1-AD30-1AE1E95561EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{869A0DA7-70E5-47D1-AD30-1AE1E95561EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{869A0DA7-70E5-47D1-AD30-1AE1E95561EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F620885-EB64-4A40-83B8-15B7D917FA7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F620885-EB64-4A40-83B8-15B7D917FA7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F620885-EB64-4A40-83B8-15B7D917FA7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F620885-EB64-4A40-83B8-15B7D917FA7E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(CodealikeProperties) = postSolution
+		SolutionGuid = 3c9ac94f-5a1f-400e-9093-0100240838c3
+	EndGlobalSection
+EndGlobal

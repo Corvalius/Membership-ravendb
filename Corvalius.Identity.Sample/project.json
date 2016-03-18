@@ -1,0 +1,50 @@
+{
+  "userSecretsId": "aspnet5-Corvalius.Identity.Sample-9788ee67-8b84-47e2-8e94-5c2af6c66d93",
+  "version": "3.0.0-*",
+  "compilationOptions": {
+    "emitEntryPoint": true
+  },
+
+  "dependencies": {
+    "Corvalius.Identity.RavenDB": "3.0.0-*",
+    "RavenDB.Client": "3.0.30068-Unstable",
+    "Microsoft.AspNet.Authentication.Cookies": "1.0.0-rc1-final",
+    "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-rc1-final",
+    "Microsoft.AspNet.IISPlatformHandler": "1.0.0-rc1-final",
+    "Microsoft.AspNet.Mvc": "6.0.0-rc1-final",
+    "Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-rc1-final",
+    "Microsoft.AspNet.Server.Kestrel": "1.0.0-rc1-final",
+    "Microsoft.AspNet.StaticFiles": "1.0.0-rc1-final",
+    "Microsoft.AspNet.Tooling.Razor": "1.0.0-rc1-final",
+    "Microsoft.Extensions.CodeGenerators.Mvc": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Configuration.FileProviderExtensions": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Configuration.UserSecrets": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Logging": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Logging.Console": "1.0.0-rc1-final",
+    "Microsoft.Extensions.Logging.Debug": "1.0.0-rc1-final",
+    "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-rc1-final"
+  },
+
+  "commands": {
+    "web": "Microsoft.AspNet.Server.Kestrel",
+    "ef": "EntityFramework.Commands"
+  },
+
+  "frameworks": {
+    "dnx451": { },
+    "dnxcore50": { }
+  },
+
+  "exclude": [
+    "wwwroot",
+    "node_modules"
+  ],
+  "publishExclude": [
+    "**.user",
+    "**.vspscc"
+  ],
+  "scripts": {
+    "prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]
+  }
+}
