@@ -5,23 +5,29 @@
   "tags": [ "ravendb", "aspnet", "identity", "membership" ],
   "projectUrl": "",
   "licenseUrl": "",
+
   "frameworks": {
-    "net451": {
-      "dependencies": {
-      }
-    },
-    "dnxcore50": {
-      "dependencies": {
-        "Microsoft.CSharp": "4.0.1-beta-23516",
-        "System.Collections": "4.0.11-beta-23516",
-        "System.Linq": "4.0.1-beta-23516",
-        "System.Runtime": "4.0.21-beta-23516",
-        "System.Threading": "4.0.11-beta-23516"
+    "dnx451": {
+      "frameworkAssemblies": {
+        "System.Runtime": "4.0.0.0",
+        "System.Threading": "4.0.0.0",
+        "System.Threading.Tasks": "4.0.0.0"
       }
     }
   },
+
+  "commands": {
+    "test": "xunit.runner.dnx"
+  },
+
   "dependencies": {
-    "Microsoft.AspNet.Identity": "3.0.0-rc1-final",
-    "RavenDB.Client": "3.0.30068-Unstable"
+    "Microsoft.Extensions.DependencyInjection": "1.0.0-rc1-*",
+    "Microsoft.Extensions.Logging": "1.0.0-rc1-*",
+    "Microsoft.AspNet.Identity": "3.0.0-rc1-*",
+    "Corvalius.Identity.RavenDB": "3.0.0-*",
+    "RavenDB.Client": "3.0.30108-Unstable",
+    "RavenDB.Tests.Helpers": "3.0.30108-Unstable",
+    "xunit": "2.1.0-*",
+    "xunit.runner.dnx": "2.1.0-*"
   }
 }

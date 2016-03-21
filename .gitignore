@@ -111,3 +111,4 @@ Assemblies/
 Raven/
 node_modules/
 .vs/
+project.lock.json

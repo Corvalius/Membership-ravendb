@@ -68,6 +68,9 @@ namespace Corvalius.Identity.RavenDB
         where TDocumentStore : class, IDocumentStore
         where TKey : IEquatable<TKey>
     {
+        private const string Prefix = "users";
+        private const string PrefixReference = "users/ref";
+
         /// <summary>
         /// Creates a new instance of <see cref="UserStore"/>.
         /// </summary>
@@ -80,6 +83,7 @@ namespace Corvalius.Identity.RavenDB
 
             Context = context;
             ErrorDescriber = describer ?? new IdentityErrorDescriber();
+            _session = new Lazy<IAsyncDocumentSession>(InitializeSession, true);
         }
 
         private bool _disposed;
@@ -88,6 +92,20 @@ namespace Corvalius.Identity.RavenDB
         /// Gets the database context for this store.
         /// </summary>
         public TDocumentStore Context { get; private set; }
+
+        private Lazy<IAsyncDocumentSession> _session;
+
+        protected IAsyncDocumentSession Session
+        {
+            get { return _session.Value; }
+        }
+
+        private IAsyncDocumentSession InitializeSession ()
+        {
+            var session = Context.OpenAsyncSession();
+            session.Advanced.UseOptimisticConcurrency = true;
+            return session;
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="IdentityErrorDescriber"/> for any error that occurred with the current operation.
@@ -107,8 +125,7 @@ namespace Corvalius.Identity.RavenDB
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         private Task SaveChanges(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
-            // return AutoSaveChanges ? Context.SaveChangesAsync(cancellationToken) : Task.FromResult(0);
+            return AutoSaveChanges ? Session.SaveChangesAsync(cancellationToken) : Task.FromResult(0);
         }
 
         /// <summary>
@@ -208,10 +225,9 @@ namespace Corvalius.Identity.RavenDB
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            // Context.Add(user);
-            throw new NotImplementedException();
-
+            await Session.StoreAsync(user, $"{Prefix}/{user.Id.ToString()}", cancellationToken);
             await SaveChanges(cancellationToken);
+
             return IdentityResult.Success;
         }
 
@@ -228,12 +244,11 @@ namespace Corvalius.Identity.RavenDB
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
+            var userId = user.Id.ToString();
+            var stored = await Session.LoadAsync<TUser>(userId, cancellationToken);
+            var etag = Session.Advanced.GetEtagFor(stored);
 
-            //Context.Attach(user);
-            //user.ConcurrencyStamp = Guid.NewGuid().ToString();
-            //Context.Update(user);
-
-            throw new NotImplementedException();
+            await Session.StoreAsync(user, etag, userId, cancellationToken);
 
             try
             {
@@ -243,6 +258,7 @@ namespace Corvalius.Identity.RavenDB
             {
                 return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
             }
+
             return IdentityResult.Success;
         }
 
@@ -261,9 +277,8 @@ namespace Corvalius.Identity.RavenDB
                 throw new ArgumentNullException(nameof(user));
             }
 
-            throw new NotImplementedException();
-            
-            // Context.Remove(user);
+            var userId = user.Id.ToString();
+            Session.Delete(userId);
 
             try
             {
@@ -288,8 +303,9 @@ namespace Corvalius.Identity.RavenDB
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
+
             var id = ConvertIdFromString(userId);
-            return Users.FirstOrDefaultAsync(u => u.Id.Equals(id), cancellationToken);
+            return Session.LoadAsync<TUser>(id.ToString(), cancellationToken);
         }
 
         /// <summary>
@@ -332,7 +348,8 @@ namespace Corvalius.Identity.RavenDB
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
-            return Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName, cancellationToken);
+
+            return Session.LoadAsync<TUser>($"{PrefixReference}{normalizedUserName}", cancellationToken);
         }
 
         /// <summary>
@@ -631,11 +648,11 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="login">The login to add to the user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual Task AddLoginAsync(TUser user, UserLoginInfo login,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
+
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
@@ -648,12 +665,10 @@ namespace Corvalius.Identity.RavenDB
                 ProviderKey = login.ProviderKey,
                 LoginProvider = login.LoginProvider,
                 ProviderDisplayName = login.ProviderDisplayName
-            };
+            };                                   
 
-            throw new NotImplementedException();
-            //UserLogins.Add(l);
-
-            return Task.FromResult(false);
+            await Session.StoreAsync(l, l.ToId(), cancellationToken);
+            await Session.StoreAsync(l.CreateProviderReference(), cancellationToken);
         }
 
         /// <summary>
@@ -664,7 +679,7 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
+        public virtual Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -672,14 +687,10 @@ namespace Corvalius.Identity.RavenDB
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var userId = user.Id;
-            throw new NotImplementedException();
+            Session.Delete(IdentityUserLogin<TKey>.CreateId(user.Id.ToString(), loginProvider, providerKey));
+            Session.Delete(IdentityUserLoginRef<TKey>.CreateReferenceId(loginProvider, providerKey));
 
-            //var entry = await UserLogins.SingleOrDefaultAsync(l => l.UserId.Equals(userId) && l.LoginProvider == loginProvider && l.ProviderKey == providerKey, cancellationToken);
-            //if (entry != null)
-            //{
-            //    UserLogins.Remove(entry);
-            //}
+            return Task.FromResult(0);
         }
 
         /// <summary>
@@ -698,12 +709,11 @@ namespace Corvalius.Identity.RavenDB
             {
                 throw new ArgumentNullException(nameof(user));
             }
-            var userId = user.Id;
 
-            throw new NotImplementedException();
+            var logins = await Session.Advanced.LoadStartingWithAsync<IdentityUserLogin<TKey>>($"{user.Id.ToString()}/", token: cancellationToken);
 
-            //return await UserLogins.Where(l => l.UserId.Equals(userId))
-            //    .Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)).ToListAsync(cancellationToken);
+            return logins.Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName))
+                         .ToList();
         }
 
         /// <summary>
@@ -715,20 +725,16 @@ namespace Corvalius.Identity.RavenDB
         /// <returns>
         /// The <see cref="Task"/> for the asynchronous operation, containing the user, if any which matched the specified login provider and key.
         /// </returns>
-        public async virtual Task<TUser> FindByLoginAsync(string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task<TUser> FindByLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            throw new NotImplementedException();
-
-            //var userLogin = await UserLogins.FirstOrDefaultAsync(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey, cancellationToken);
-            //if (userLogin != null)
-            //{
-            //    return await Users.FirstOrDefaultAsync(u => u.Id.Equals(userLogin.UserId), cancellationToken);
-            //}
-
+            var login = await Session.LoadAsync<IdentityUserLogin<TKey>>(IdentityUserLoginRef<TKey>.CreateReferenceId(loginProvider, providerKey), cancellationToken);
+            if (login != null)
+            {
+                return await Session.LoadAsync<TUser>(login.UserId.ToString(), cancellationToken);
+            }
             return null;
         }
 
@@ -1183,12 +1189,12 @@ namespace Corvalius.Identity.RavenDB
             return new List<TUser>();
         }
 
-        private Task<IdentityUserToken<TKey>> FindToken(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        private async Task<IdentityUserToken<TKey>> FindToken(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
         {
             var userId = user.Id;
 
-            throw new NotImplementedException();
-            //return UserTokens.SingleOrDefaultAsync(l => l.UserId.Equals(userId) && l.LoginProvider == loginProvider && l.Name == name, cancellationToken);
+            var token = await Session.LoadAsync<IdentityUserToken<TKey>>(IdentityUserToken<TKey>.CreateId(user.Id.ToString(), loginProvider, name), cancellationToken);
+            return token;
         }
 
         // <inheritdoc>
@@ -1203,15 +1209,15 @@ namespace Corvalius.Identity.RavenDB
             var token = await FindToken(user, loginProvider, name, cancellationToken);
             if (token == null)
             {
-                throw new NotImplementedException();
+                var entity = new IdentityUserToken<TKey>
+                {
+                    UserId = user.Id,
+                    LoginProvider = loginProvider,
+                    Name = name,
+                    Value = value
+                };
 
-                //UserTokens.Add(new IdentityUserToken<TKey>
-                //{
-                //    UserId = user.Id,
-                //    LoginProvider = loginProvider,
-                //    Name = name,
-                //    Value = value
-                //});
+                await Session.StoreAsync(entity, entity.ToId());
             }
             else
             {
@@ -1219,7 +1225,7 @@ namespace Corvalius.Identity.RavenDB
             }
         }
 
-        public async Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        public Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1228,14 +1234,9 @@ namespace Corvalius.Identity.RavenDB
             {
                 throw new ArgumentNullException(nameof(user));
             }
-            var userId = user.Id;
-            throw new NotImplementedException();
 
-            //var entry = await UserTokens.SingleOrDefaultAsync(l => l.UserId.Equals(userId) && l.LoginProvider == loginProvider && l.Name == name, cancellationToken);
-            //if (entry != null)
-            //{
-            //    UserTokens.Remove(entry);
-            //}
+            Session.Delete(IdentityUserToken<TKey>.CreateId(user.Id.ToString(), loginProvider, name));
+            return Task.FromResult(0);
         }
 
         public async Task<string> GetTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
@@ -1249,11 +1250,6 @@ namespace Corvalius.Identity.RavenDB
             }
             var entry = await FindToken(user, loginProvider, name, cancellationToken);
             return entry?.Value;
-        }
-
-        Task<IList<Claim>> IUserClaimStore<TUser>.GetClaimsAsync(TUser user, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }     
+        }  
     }
 }

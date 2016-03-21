@@ -10,15 +10,10 @@ using Corvalius.Identity.RavenDB;
 
 namespace Corvalius.Identity.DependencyInjection
 {
-    internal class ServiceCollection : List<ServiceDescriptor>, IServiceCollection
-    {
-
-	}
-
     public static class IdentityBuilderExtensions
     {
         /// <summary>
-        /// Adds an Entity Framework implementation of identity information stores.
+        /// Adds a RavenDB implementation of identity information stores.
         /// </summary>
         /// <typeparam name="TDocumentStore">The document store to use.</typeparam>
         /// <param name="builder">The <see cref="IdentityBuilder"/> instance this method extends.</param>
@@ -31,13 +26,13 @@ namespace Corvalius.Identity.DependencyInjection
         }
 
         /// <summary>
-        /// Adds an Entity Framework implementation of identity information stores.
+        /// Adds a RavenDB implementation of identity information stores.
         /// </summary>
         /// <typeparam name="TDocumentStore">The document store to use.</typeparam>
         /// <typeparam name="TKey">The type of the primary key used for the users and roles.</typeparam>
         /// <param name="builder">The <see cref="IdentityBuilder"/> instance this method extends.</param>
         /// <returns>The <see cref="IdentityBuilder"/> instance this method extends.</returns>
-        public static IdentityBuilder AddEntityFrameworkStores<TDocumentStore, TKey>(this IdentityBuilder builder)
+        public static IdentityBuilder AddRavenStores<TDocumentStore, TKey>(this IdentityBuilder builder)
             where TDocumentStore : class, IDocumentStore
             where TKey : IEquatable<TKey>
         {

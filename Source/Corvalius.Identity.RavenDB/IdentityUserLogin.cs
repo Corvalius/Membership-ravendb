@@ -30,5 +30,35 @@ namespace Corvalius.Identity.RavenDB
         /// Gets or sets the of the primary key of the user associated with this login.
         /// </summary>
         public virtual TKey UserId { get; set; }
+
+        public string ToId()
+        {
+            return $"{UserId.ToString()}/{LoginProvider}/{ProviderKey}";
+        }
+
+        public static string CreateId(string userId, string loginProvider, string providerKey)
+        {
+            return $"{userId}/{loginProvider}/{providerKey}";
+        }
+
+        public IdentityUserLoginRef<TKey> CreateProviderReference()
+        {
+            return new IdentityUserLoginRef<TKey>
+            {
+                Id = IdentityUserLoginRef<TKey>.CreateReferenceId(LoginProvider, ProviderKey),
+                Reference = ToId()
+            };
+        }
+    }
+
+    public class IdentityUserLoginRef<TKey> where TKey : IEquatable<TKey>
+    {
+        public string Id;
+        public string Reference;
+        
+        public static string CreateReferenceId(string loginProvider, string providerKey)
+        {
+            return $"ref/{loginProvider}/{providerKey}";
+        }
     }
 }

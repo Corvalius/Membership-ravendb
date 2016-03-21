@@ -6,7 +6,7 @@
   },
 
   "dependencies": {
-    "RavenDB.Client": "3.0.30068-Unstable",
+    "RavenDB.Client": "3.0.30108-Unstable",
     "Microsoft.AspNet.Authentication.Cookies": "1.0.0-rc1-final",
     "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-rc1-final",
     "Microsoft.AspNet.IISPlatformHandler": "1.0.0-rc1-final",

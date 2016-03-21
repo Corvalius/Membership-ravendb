@@ -30,5 +30,15 @@ namespace Corvalius.Identity.RavenDB
         /// Gets or sets the token value.
         /// </summary>
         public virtual string Value { get; set; }
+
+        public string ToId()
+        {
+            return $"token/{UserId.ToString()}/{LoginProvider}/{Name}";
+        }
+
+        public static string CreateId(string userId, string loginProvider, string name)
+        {
+            return $"token/{userId}/{loginProvider}/{name}";
+        }
     }
 }
