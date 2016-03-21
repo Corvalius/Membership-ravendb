@@ -6,7 +6,6 @@
   },
 
   "dependencies": {
-    "Corvalius.Identity.RavenDB": "3.0.0-*",
     "RavenDB.Client": "3.0.30068-Unstable",
     "Microsoft.AspNet.Authentication.Cookies": "1.0.0-rc1-final",
     "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-rc1-final",
@@ -23,12 +22,12 @@
     "Microsoft.Extensions.Logging": "1.0.0-rc1-final",
     "Microsoft.Extensions.Logging.Console": "1.0.0-rc1-final",
     "Microsoft.Extensions.Logging.Debug": "1.0.0-rc1-final",
-    "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-rc1-final"
+    "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-rc1-final",
+    "Corvalius.Identity.RavenDB": "3.0.0-*"
   },
 
   "commands": {
     "web": "Microsoft.AspNet.Server.Kestrel",
-    "ef": "EntityFramework.Commands"
   },
 
   "frameworks": {
