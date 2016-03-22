@@ -33,7 +33,7 @@ namespace Corvalius.Identity.RavenDB
 
         public string ToId()
         {
-            return $"token/{UserId.ToString()}/{LoginProvider}/{Name}";
+            return CreateId(UserId.ToString(), LoginProvider, Name);
         }
 
         public static string CreateId(string userId, string loginProvider, string name)

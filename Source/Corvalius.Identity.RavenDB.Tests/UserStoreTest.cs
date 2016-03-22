@@ -128,8 +128,7 @@ namespace Corvalius.Identity.RavenDB.Tests
             var manager = CreateManager();
             var u = CreateTestUser();
             IdentityResultAssert.IsSuccess(await manager.CreateAsync(u));
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await manager.AddToRoleAsync(u, "bogus"));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await manager.AddToRoleAsync(u, "bogus"));
         }
 
         [Fact]

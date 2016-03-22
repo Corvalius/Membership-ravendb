@@ -10,6 +10,8 @@ namespace Corvalius.Identity.RavenDB
     /// </summary>
     public class IdentityUser : IdentityUser<string>
     {
+        public const string Prefix = "identity";
+
         /// <summary>
         /// Initializes a new instance of <see cref="IdentityUser"/>.
         /// </summary>
@@ -18,7 +20,7 @@ namespace Corvalius.Identity.RavenDB
         /// </remarks>
         public IdentityUser()
         {
-            Id = Guid.NewGuid().ToString();
+            Id = $"{Prefix}/{Guid.NewGuid().ToString()}";
         }
 
         /// <summary>
@@ -57,7 +59,7 @@ namespace Corvalius.Identity.RavenDB
         /// <summary>
         /// </summary>
         /// Gets or sets the primary key for this user.
-        public virtual TKey Id { get; set; }
+        public TKey Id { get; set; }
 
         /// <summary>
         /// Gets or sets the user name for this user.
@@ -132,19 +134,14 @@ namespace Corvalius.Identity.RavenDB
         public virtual int AccessFailedCount { get; set; }
 
         /// <summary>
-        /// Navigation property for the roles this user belongs to.
-        /// </summary>
-        public virtual ICollection<IdentityUserRole<TKey>> Roles { get; } = new List<IdentityUserRole<TKey>>();
-
-        /// <summary>
         /// Navigation property for the claims this user possesses.
         /// </summary>
-        public virtual ICollection<IdentityUserClaim<TKey>> Claims { get; } = new List<IdentityUserClaim<TKey>>();
+        public ICollection<IdentityUserClaim> Claims { get; internal set; } = new List<IdentityUserClaim>();
 
         /// <summary>
         /// Navigation property for this users login accounts.
         /// </summary>
-        public virtual ICollection<IdentityUserLogin<TKey>> Logins { get; } = new List<IdentityUserLogin<TKey>>();
+        public ICollection<IdentityUserLogin> Logins { get; internal set; } = new List<IdentityUserLogin>();
 
         /// <summary>
         /// Returns the username for this user.

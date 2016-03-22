@@ -96,8 +96,10 @@ namespace Corvalius.Identity.RavenDB.Tests
                 IdentityResultAssert.IsSuccess(await userManager.AddClaimAsync(user, new Claim(i.ToString(), "foo")));
             }
 
-            throw new NotImplementedException();
-            // user = dbContext.Users.Include(x => x.Claims).FirstOrDefault(x => x.UserName == username);
+            using (var session = dbContext.OpenAsyncSession())
+            {
+                user = await session.LoadAsync<IdentityUser>(user.Id);
+            }
 
             // Assert
             Assert.NotNull(user);
@@ -121,8 +123,10 @@ namespace Corvalius.Identity.RavenDB.Tests
                 IdentityResultAssert.IsSuccess(await userManager.AddLoginAsync(user, new UserLoginInfo("foo" + i, "bar" + i, "foo")));
             }
 
-            throw new NotImplementedException();
-            // user = dbContext.Users.Include(x => x.Logins).FirstOrDefault(x => x.UserName == username);
+            using (var session = dbContext.OpenAsyncSession())
+            {
+                user = await session.LoadAsync<IdentityUser>(user.Id);
+            }
 
             // Assert
             Assert.NotNull(user);
@@ -153,20 +157,23 @@ namespace Corvalius.Identity.RavenDB.Tests
                 IdentityResultAssert.IsSuccess(await userManager.AddToRoleAsync(user, roleName + i));
             }
 
-            throw new NotImplementedException();
-            // user = dbContext.Users.Include(x => x.Roles).FirstOrDefault(x => x.UserName == username);
-
-            // Assert
-            Assert.NotNull(user);
-            Assert.NotNull(user.Roles);
-            Assert.Equal(10, user.Roles.Count());
-
-            for (var i = 0; i < 10; i++)
+            using (var session = dbContext.OpenAsyncSession())
             {
-                //var role = dbContext.Roles.Include(r => r.Users).FirstOrDefault(r => r.Name == (roleName + i));
-                //Assert.NotNull(role);
-                //Assert.NotNull(role.Users);
-                //Assert.Equal(1, role.Users.Count());
+                user = await session.LoadAsync<IdentityUser>(user.Id);
+                var rolesForUser = await session.LoadAsync<IdentityUserRole>(IdentityUserRole.CreateId(user.Id));
+
+                // Assert
+                Assert.NotNull(user);
+                Assert.NotNull(rolesForUser.Roles);
+                Assert.Equal(10, rolesForUser.Roles.Count());                
+
+                for (var i = 0; i < 10; i++)
+                {
+                    var role = await session.LoadAsync<IdentityRole>(IdentityRole<string>.CreateId(roleName + i));                    
+                    Assert.NotNull(role);
+
+                    rolesForUser.Roles.Contains(role.NormalizedName);
+                }
             }
         }
 
@@ -186,13 +193,17 @@ namespace Corvalius.Identity.RavenDB.Tests
                 IdentityResultAssert.IsSuccess(await roleManager.AddClaimAsync(role, new Claim("foo" + i, "bar" + i)));
             }
 
-            throw new NotImplementedException();
-            // role = dbContext.Roles.Include(x => x.Claims).FirstOrDefault(x => x.Name == "Admin");
+            using ( var session = dbContext.OpenAsyncSession() )
+            {
+                role = await session.LoadAsync<IdentityRole>(IdentityRole<string>.CreateId(role.NormalizedName));
 
-            // Assert
-            Assert.NotNull(role);
-            Assert.NotNull(role.Claims);
-            Assert.Equal(10, role.Claims.Count());
+                // Assert
+                Assert.NotNull(role);
+                Assert.NotNull(role.Claims);
+                Assert.Equal(10, role.Claims.Count());
+            }
+
+
         }
     }
 }

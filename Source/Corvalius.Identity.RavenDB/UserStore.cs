@@ -100,7 +100,7 @@ namespace Corvalius.Identity.RavenDB
             get { return _session.Value; }
         }
 
-        private IAsyncDocumentSession InitializeSession ()
+        private IAsyncDocumentSession InitializeSession()
         {
             var session = Context.OpenAsyncSession();
             session.Advanced.UseOptimisticConcurrency = true;
@@ -118,14 +118,14 @@ namespace Corvalius.Identity.RavenDB
         /// <value>
         /// True if changes should be automatically persisted, otherwise false.
         /// </value>
-        public bool AutoSaveChanges { get; set; } = true;
+        public bool DoSaveChanges { get; set; } = true;
 
         /// <summary>Saves the current store.</summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        private Task SaveChanges(CancellationToken cancellationToken)
+        public Task SaveChanges(CancellationToken cancellationToken, bool forceSave = false)
         {
-            return AutoSaveChanges ? Session.SaveChangesAsync(cancellationToken) : Task.FromResult(0);
+            return (DoSaveChanges || forceSave) ? Session.SaveChangesAsync(cancellationToken) : Task.FromResult(0);
         }
 
         /// <summary>
@@ -426,15 +426,22 @@ namespace Corvalius.Identity.RavenDB
             if (string.IsNullOrWhiteSpace(normalizedRoleName))
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, nameof(normalizedRoleName));
 
-            throw new NotImplementedException();
+            var roleEntity = await Session.LoadAsync<TRole>(IdentityRole<TKey>.CreateId(normalizedRoleName));
+            if ( roleEntity == null )
+                throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, Resources.RoleNotFound, normalizedRoleName));
 
-            //var roleEntity = await Roles.SingleOrDefaultAsync(r => r.NormalizedName == normalizedRoleName, cancellationToken);
-            //if (roleEntity == null)
-            //{
-            //    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, Resources.RoleNotFound, normalizedRoleName));
-            //}
-            //var ur = new IdentityUserRole<TKey> { UserId = user.Id, RoleId = roleEntity.Id };
-            //UserRoles.Add(ur);
+            var userRolesId = IdentityUserRole.CreateId(user.Id.ToString());
+            var userRoles = await Session.LoadAsync<IdentityUserRole>(userRolesId);
+            if ( userRoles == null )
+            {
+                userRoles = new IdentityUserRole(user.Id.ToString());
+                await Session.StoreAsync(userRoles, userRolesId);
+            }
+
+            if (!userRoles.Roles.Contains(roleEntity.NormalizedName))
+                userRoles.Roles.Add(roleEntity.NormalizedName);
+
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -454,17 +461,15 @@ namespace Corvalius.Identity.RavenDB
             if (string.IsNullOrWhiteSpace(normalizedRoleName))
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, nameof(normalizedRoleName));
 
-            throw new NotImplementedException();
+            var roleId = IdentityRole<TKey>.CreateId(normalizedRoleName);
+            var roleEntity = await Session.LoadAsync<TRole>(roleId);
+            if (roleEntity != null)
+            {
+                var userRoles = await Session.LoadAsync<IdentityUserRole>(IdentityUserRole.CreateId(user.Id.ToString()));
+                userRoles.Roles.Remove(normalizedRoleName);
+            }
 
-            //var roleEntity = await Roles.SingleOrDefaultAsync(r => r.NormalizedName == normalizedRoleName, cancellationToken);
-            //if (roleEntity != null)
-            //{
-            //    var userRole = await UserRoles.FirstOrDefaultAsync(r => roleEntity.Id.Equals(r.RoleId) && r.UserId.Equals(user.Id), cancellationToken);
-            //    if (userRole != null)
-            //    {
-            //        UserRoles.Remove(userRole);
-            //    }
-            //}
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -480,15 +485,11 @@ namespace Corvalius.Identity.RavenDB
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            throw new NotImplementedException();
+            var userRoles = await Session.LoadAsync<IdentityUserRole>(IdentityUserRole.CreateId(user.Id.ToString()));
+            if (userRoles == null)
+                return new List<string>();
 
-            //var userId = user.Id;
-            //var query = from userRole in UserRoles
-            //            join role in Roles on userRole.RoleId equals role.Id
-            //            where userRole.UserId.Equals(userId)
-            //            select role.Name;
-            //return await query.ToListAsync();
-
+            return new List<string>(userRoles.Roles);
         }
 
         /// <summary>
@@ -509,17 +510,11 @@ namespace Corvalius.Identity.RavenDB
             if (string.IsNullOrWhiteSpace(normalizedRoleName))
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, nameof(normalizedRoleName));
 
-            throw new NotImplementedException();
+            var userRoles = await Session.LoadAsync<IdentityUserRole>(IdentityUserRole.CreateId(user.Id.ToString()));
+            if (userRoles == null)
+                return false;
 
-            //var role = await Roles.SingleOrDefaultAsync(r => r.NormalizedName == normalizedRoleName, cancellationToken);
-            //if (role != null)
-            //{
-            //    var userId = user.Id;
-            //    var roleId = role.Id;
-            //    return await UserRoles.AnyAsync(ur => ur.RoleId.Equals(roleId) && ur.UserId.Equals(userId));
-            //}
-
-            return false;
+            return userRoles.Roles.Contains(normalizedRoleName);
         }
 
         protected void ThrowIfDisposed()
@@ -548,13 +543,10 @@ namespace Corvalius.Identity.RavenDB
         {
             ThrowIfDisposed();
             if (user == null)
-            {
                 throw new ArgumentNullException(nameof(user));
-            }
 
-            throw new NotImplementedException();
-
-            //return await UserClaims.Where(uc => uc.UserId.Equals(user.Id)).Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToListAsync(cancellationToken);
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString(), cancellationToken);
+            return new List<Claim>(stored.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)));
         }
 
         /// <summary>
@@ -564,7 +556,7 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="claims">The claim to add to the user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default(CancellationToken))
         {
             ThrowIfDisposed();
             if (user == null)
@@ -573,14 +565,12 @@ namespace Corvalius.Identity.RavenDB
             if (claims == null)
                 throw new ArgumentNullException(nameof(claims));
 
-            throw new NotImplementedException();
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString(), cancellationToken);
 
-            //foreach (var claim in claims)
-            //{
-            //    UserClaims.Add(new IdentityUserClaim<TKey> { UserId = user.Id, ClaimType = claim.Type, ClaimValue = claim.Value });
-            //}
+            foreach (var claim in claims)
+                stored.Claims.Add(new IdentityUserClaim { ClaimType = claim.Type, ClaimValue = claim.Value });
 
-            return Task.FromResult(false);
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -603,14 +593,15 @@ namespace Corvalius.Identity.RavenDB
             if (newClaim == null)
                 throw new ArgumentNullException(nameof(newClaim));
 
-            throw new NotImplementedException();
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString(), cancellationToken);
+            var matchedClaims = stored.Claims.Where(uc => uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type);
+            foreach (var matchedClaim in matchedClaims)
+            {
+                matchedClaim.ClaimValue = newClaim.Value;
+                matchedClaim.ClaimType = newClaim.Type;
+            }
 
-            //var matchedClaims = await UserClaims.Where(uc => uc.UserId.Equals(user.Id) && uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToListAsync(cancellationToken);
-            //foreach (var matchedClaim in matchedClaims)
-            //{
-            //    matchedClaim.ClaimValue = newClaim.Value;
-            //    matchedClaim.ClaimType = newClaim.Type;
-            //}
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -629,16 +620,20 @@ namespace Corvalius.Identity.RavenDB
             if (claims == null)
                 throw new ArgumentNullException(nameof(claims));
 
-            throw new NotImplementedException();
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString(), cancellationToken);
 
-            //foreach (var claim in claims)
-            //{
-            //    var matchedClaims = await UserClaims.Where(uc => uc.UserId.Equals(user.Id) && uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToListAsync(cancellationToken);
-            //    foreach (var c in matchedClaims)
-            //    {
-            //        UserClaims.Remove(c);
-            //    }
-            //}
+            var toRemove = new List<IdentityUserClaim>();
+            foreach (var claim in claims)
+            {
+                var matchedClaims = stored.Claims.Where(uc => uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type);              
+                foreach (var c in matchedClaims)
+                    toRemove.Add(c);
+            }
+
+            foreach (var item in toRemove)
+                stored.Claims.Remove(item);
+
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -659,16 +654,26 @@ namespace Corvalius.Identity.RavenDB
             if (login == null)
                 throw new ArgumentNullException(nameof(login));
 
-            var l = new IdentityUserLogin<TKey>
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString());
+            stored.Logins.Add(new IdentityUserLogin
             {
-                UserId = user.Id,
                 ProviderKey = login.ProviderKey,
                 LoginProvider = login.LoginProvider,
                 ProviderDisplayName = login.ProviderDisplayName
-            };                                   
+            });
 
-            await Session.StoreAsync(l, l.ToId(), cancellationToken);
-            await Session.StoreAsync(l.CreateProviderReference(), cancellationToken);
+            await Session.StoreAsync(CreateProviderReference(user, login.LoginProvider, login.ProviderKey));
+            await SaveChanges(cancellationToken);
+        }
+
+        public IdentityUserLoginRef CreateProviderReference(TUser user, string loginProvider, string providerKey)
+        {
+            string userId = user.Id.ToString();
+            return new IdentityUserLoginRef
+            {
+                Id = IdentityUserLoginRef.CreateReferenceId(loginProvider, providerKey),
+                Reference = userId,
+            };
         }
 
         /// <summary>
@@ -679,18 +684,22 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            Session.Delete(IdentityUserLogin<TKey>.CreateId(user.Id.ToString(), loginProvider, providerKey));
-            Session.Delete(IdentityUserLoginRef<TKey>.CreateReferenceId(loginProvider, providerKey));
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString());
+            var entry = stored.Logins.SingleOrDefault(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
+            if (entry != null)
+            {
+                stored.Logins.Remove(entry);
+                Session.Delete(IdentityUserLoginRef.CreateReferenceId(entry.LoginProvider, entry.ProviderKey));
+            }
 
-            return Task.FromResult(0);
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -705,14 +714,12 @@ namespace Corvalius.Identity.RavenDB
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
+
             if (user == null)
-            {
                 throw new ArgumentNullException(nameof(user));
-            }
 
-            var logins = await Session.Advanced.LoadStartingWithAsync<IdentityUserLogin<TKey>>($"{user.Id.ToString()}/", token: cancellationToken);
-
-            return logins.Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName))
+            var stored = await Session.LoadAsync<TUser>(user.Id.ToString());
+            return stored.Logins.Select(l => new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName))
                          .ToList();
         }
 
@@ -730,11 +737,10 @@ namespace Corvalius.Identity.RavenDB
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            var login = await Session.LoadAsync<IdentityUserLogin<TKey>>(IdentityUserLoginRef<TKey>.CreateReferenceId(loginProvider, providerKey), cancellationToken);
+            var login = await Session.LoadAsync<IdentityUserLoginRef>(IdentityUserLoginRef.CreateReferenceId(loginProvider, providerKey), cancellationToken);
             if (login != null)
-            {
-                return await Session.LoadAsync<TUser>(login.UserId.ToString(), cancellationToken);
-            }
+                return await Session.LoadAsync<TUser>(login.Reference, cancellationToken);
+
             return null;
         }
 
@@ -1147,15 +1153,7 @@ namespace Corvalius.Identity.RavenDB
             if (claim == null)
                 throw new ArgumentNullException(nameof(claim));
 
-            throw new NotImplementedException();
-
-            //var query = from userclaims in UserClaims
-            //            join user in Users on userclaims.UserId equals user.Id
-            //            where userclaims.ClaimValue == claim.Value
-            //            && userclaims.ClaimType == claim.Type
-            //            select user;
-
-            //return await query.ToListAsync(cancellationToken);
+            throw new NotSupportedException("Currently not supported. We would happilly accept a PR for it");
         }
 
         /// <summary>
@@ -1173,20 +1171,7 @@ namespace Corvalius.Identity.RavenDB
             if (String.IsNullOrEmpty(normalizedRoleName))
                 throw new ArgumentNullException(nameof(normalizedRoleName));
 
-            throw new NotImplementedException();
-
-            //var role = await Roles.Where(x => x.NormalizedName == normalizedRoleName).FirstOrDefaultAsync(cancellationToken);
-            //if (role != null)
-            //{
-            //    var query = from userrole in UserRoles
-            //                join user in Users on userrole.UserId equals user.Id
-            //                where userrole.RoleId.Equals(role.Id)
-            //                select user;
-
-            //    return await query.ToListAsync(cancellationToken);
-            //}
-
-            return new List<TUser>();
+            throw new NotSupportedException("Currently not supported. We would happilly accept a PR for it");
         }
 
         private async Task<IdentityUserToken<TKey>> FindToken(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
@@ -1223,9 +1208,11 @@ namespace Corvalius.Identity.RavenDB
             {
                 token.Value = value;
             }
+
+            await SaveChanges(cancellationToken);
         }
 
-        public Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        public async Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1236,7 +1223,7 @@ namespace Corvalius.Identity.RavenDB
             }
 
             Session.Delete(IdentityUserToken<TKey>.CreateId(user.Id.ToString(), loginProvider, name));
-            return Task.FromResult(0);
+            await SaveChanges(cancellationToken);
         }
 
         public async Task<string> GetTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
@@ -1245,9 +1232,8 @@ namespace Corvalius.Identity.RavenDB
             ThrowIfDisposed();
 
             if (user == null)
-            {
                 throw new ArgumentNullException(nameof(user));
-            }
+
             var entry = await FindToken(user, loginProvider, name, cancellationToken);
             return entry?.Value;
         }  

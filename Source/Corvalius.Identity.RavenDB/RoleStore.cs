@@ -53,6 +53,7 @@ namespace Corvalius.Identity.RavenDB
 
             Context = context;
             ErrorDescriber = describer ?? new IdentityErrorDescriber();
+            _session = new Lazy<IAsyncDocumentSession>(InitializeSession, true);
         }
 
         private bool _disposed;
@@ -62,6 +63,21 @@ namespace Corvalius.Identity.RavenDB
         /// Gets the database context for this store.
         /// </summary>
         public TDocumentStore Context { get; private set; }
+
+        private Lazy<IAsyncDocumentSession> _session;
+
+        protected IAsyncDocumentSession Session
+        {
+            get { return _session.Value; }
+        }
+
+        private IAsyncDocumentSession InitializeSession()
+        {
+            var session = Context.OpenAsyncSession();
+            session.Advanced.UseOptimisticConcurrency = true;
+            return session;
+        }
+
 
         /// <summary>
         /// Gets or sets the <see cref="IdentityErrorDescriber"/> for any error that occurred with the current operation.
@@ -74,18 +90,14 @@ namespace Corvalius.Identity.RavenDB
         /// <value>
         /// True if changes should be automatically persisted, otherwise false.
         /// </value>
-        public bool AutoSaveChanges { get; set; } = true;
+        public bool DoSaveChanges { get; set; } = true;
 
         /// <summary>Saves the current store.</summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        private async Task SaveChanges(CancellationToken cancellationToken)
+        public Task SaveChanges(CancellationToken cancellationToken, bool forceSave = false)
         {
-            if (AutoSaveChanges)
-            {
-                throw new NotImplementedException();
-                // await Context.SaveChangesAsync(cancellationToken);
-            }
+            return (DoSaveChanges || forceSave) ? Session.SaveChangesAsync(cancellationToken) : Task.FromResult(0);
         }
 
         /// <summary>
@@ -101,10 +113,10 @@ namespace Corvalius.Identity.RavenDB
             if (role == null)
                 throw new ArgumentNullException(nameof(role));
 
-            // Context.Add(role);
-            throw new NotImplementedException();
-
+            var roleId = IdentityRole<TKey>.CreateId(role.NormalizedName);            
+            await Session.StoreAsync(role, roleId, cancellationToken);
             await SaveChanges(cancellationToken);
+
             return IdentityResult.Success;
         }
 
@@ -121,11 +133,11 @@ namespace Corvalius.Identity.RavenDB
             if (role == null)
                 throw new ArgumentNullException(nameof(role));
 
-            //Context.Attach(role);
-            //role.ConcurrencyStamp = Guid.NewGuid().ToString();
-            //Context.Update(role);
+            var roleId = IdentityRole<TKey>.CreateId(role.NormalizedName);
+            var stored = await Session.LoadAsync<TRole>(roleId);
+            var etag = Session.Advanced.GetEtagFor(stored);
 
-            throw new NotImplementedException();
+            await Session.StoreAsync(role, etag, roleId, cancellationToken);
 
             try
             {
@@ -152,8 +164,7 @@ namespace Corvalius.Identity.RavenDB
             if (role == null)
                 throw new ArgumentNullException(nameof(role));
 
-            // Context.Remove(role);
-            throw new NotImplementedException();
+            Session.Delete(IdentityRole<TKey>.CreateId(role.NormalizedName));
 
             try
             {
@@ -250,14 +261,12 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="id">The role ID to look for.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
-        public virtual Task<TRole> FindByIdAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task<TRole> FindByIdAsync(string id, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
-            var roleId = ConvertIdFromString(id);
 
-            throw new NotImplementedException();
-            // return Roles.FirstOrDefaultAsync(u => u.Id.Equals(roleId), cancellationToken);
+            return await Session.LoadAsync<TRole>(id.ToString());
         }
 
         /// <summary>
@@ -266,13 +275,12 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="normalizedName">The normalized role name to look for.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
-        public virtual Task<TRole> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default(CancellationToken))
+        public async virtual Task<TRole> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            throw new NotImplementedException();
-            // return Roles.FirstOrDefaultAsync(r => r.NormalizedName == normalizedName, cancellationToken);
+            return await Session.LoadAsync<TRole>(IdentityRole<TKey>.CreateId(normalizedName));
         }
 
         /// <summary>
@@ -336,8 +344,8 @@ namespace Corvalius.Identity.RavenDB
             if (role == null)
                 throw new ArgumentNullException(nameof(role));
 
-            throw new NotImplementedException();
-            // return await RoleClaims.Where(rc => rc.RoleId.Equals(role.Id)).Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToListAsync(cancellationToken);
+            var stored = await Session.LoadAsync<TRole>(IdentityRole<TKey>.CreateId(role.NormalizedName));
+            return new List<Claim>(stored.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)));
         }
 
         /// <summary>
@@ -347,7 +355,7 @@ namespace Corvalius.Identity.RavenDB
         /// <param name="claim">The claim to add to the role.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default(CancellationToken))
         {
             ThrowIfDisposed();
             if (role == null)
@@ -356,10 +364,10 @@ namespace Corvalius.Identity.RavenDB
             if (claim == null)
                 throw new ArgumentNullException(nameof(claim));
 
-            // RoleClaims.Add(new IdentityRoleClaim<TKey> { RoleId = role.Id, ClaimType = claim.Type, ClaimValue = claim.Value });
-            throw new NotImplementedException();
+            var stored = await Session.LoadAsync<TRole>(IdentityRole<TKey>.CreateId(role.NormalizedName));
+            stored.Claims.Add(new IdentityRoleClaim { ClaimType = claim.Type, ClaimValue = claim.Value });
 
-            return Task.FromResult(false);
+            await SaveChanges(cancellationToken);
         }
 
         /// <summary>
@@ -378,13 +386,19 @@ namespace Corvalius.Identity.RavenDB
             if (claim == null)
                 throw new ArgumentNullException(nameof(claim));
 
-            //var claims = await RoleClaims.Where(rc => rc.RoleId.Equals(role.Id) && rc.ClaimValue == claim.Value && rc.ClaimType == claim.Type).ToListAsync(cancellationToken);
-            //foreach (var c in claims)
-            //{
-            //    RoleClaims.Remove(c);
-            //}
+            var stored = await Session.LoadAsync<TRole>(IdentityRole<TKey>.CreateId(role.NormalizedName));
 
-            throw new NotImplementedException();
+            var toRemove = new List<IdentityRoleClaim>();            
+            foreach (var c in stored.Claims)
+            {
+                if (c.ClaimValue == claim.Value && c.ClaimType == claim.Type)
+                    toRemove.Add(c);
+            }
+
+            foreach (var c in toRemove)
+                stored.Claims.Remove(c);
+
+            await SaveChanges(cancellationToken);
         }
 
         public IQueryable<TRole> Roles
