@@ -865,8 +865,7 @@ namespace Corvalius.Identity.RavenDB
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            throw new NotImplementedException();
-            // return Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
+            throw new NotSupportedException("Currently not supported. We would happilly accept a PR for it");
         }
 
         /// <summary>
@@ -1146,7 +1145,7 @@ namespace Corvalius.Identity.RavenDB
         /// <returns>
         /// The <see cref="Task"/> contains a list of users, if any, that contain the specified claim. 
         /// </returns>
-        public async virtual Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default(CancellationToken))
+        public virtual Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
