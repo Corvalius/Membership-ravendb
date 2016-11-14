@@ -5,7 +5,7 @@
     <version>$version$</version>
     <authors>$author$</authors>
     <owners>$author$</owners>
-    <projectUrl>http://hg.corvalius.com/Anubis</projectUrl>
+    <projectUrl>https://github.com/Corvalius/Membership-ravendb</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Corvalius Simple Membership Provider for RavenDB. The source code also has an example using MVC 4 that supports the entire functionality.</description>
     <copyright>Copyright Corvalius 2014</copyright>
@@ -14,12 +14,12 @@
       <dependency id="DotNetOpenAuth.AspNet" version="4.3.4.13329" />
       <dependency id="Microsoft.AspNet.WebApi" version="5.2.3" />
       <dependency id="Microsoft.Net.Http" version="2.2.29" />
-      <dependency id="RavenDB.Client" version="3.0.3690" />
+      <dependency id="RavenDB.Client" version="3.5.1" />
     </dependencies>
   </metadata>
   
   <files>
-	<file src="bin\Debug\*.pdb" target="\lib\net45" />
+	<file src="bin\Debug\*.pdb" target="\lib\net461" />
 	<file src="**\*.cs" target="src" />
   </files>
   
