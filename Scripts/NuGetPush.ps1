@@ -11,8 +11,8 @@ Push-Location $PSScriptRoot
 Push-Location ..
 
 ## We still have not published it through Nuget on this commit, but we will do so in the very near future. 
-# $nuGetGalleryServer = "http://NUGET-REPOSITORY"
-# $nugetApiKey = "NUGET-API-KEY"
+$nuGetGalleryServer = "https://www.myget.org/F/corvalius/api/v2/package"
+$nugetApiKey = "YOUR-API-HERE"
 $nugetExecutable = Get-ChildItem "NuGet.exe" -Recurse | Select -First 1 
 Set-Alias Execute-NuGet $nugetExecutable
 
