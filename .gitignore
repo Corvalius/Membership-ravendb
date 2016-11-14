@@ -109,3 +109,5 @@ UpgradeLog*.XML
 Source/Corvalius.Membership.Raven.Sample.Mvc4/App_Data/
 Source/Corvalius.Membership.Raven.Sample.Mvc4/Assemblies/
 Source/Corvalius.Membership.Raven.Sample.Mvc4/Raven/
+.vs/
+Source/Corvalius.Membership.Raven.Sample.Mvc4/CompiledIndexCache/

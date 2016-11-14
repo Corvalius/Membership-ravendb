@@ -57,20 +57,20 @@ foreach( $spec in $nuspecFiles )
             Del *.nupkg
 
             # Build the package.		
-			$projectFile = $spec.BaseName + ".csproj"		
-			
-			if ($Stable -eq "yes")
-			{
-				Execute-NuGet pack $projectFile -Symbols -Build -Version $buildNumber
-			}
-			elseif ($Development -eq "no")
-			{
-				Execute-NuGet pack $projectFile -Symbols -Build -Version "$buildNumber-prerelease"
-			}			            
-			else
-			{
-				Execute-NuGet pack $projectFile -Symbols -Build -Version "$buildNumber-prerelease"
-			}
+            $projectFile = $spec.BaseName + ".csproj"		
+            
+            if ($Stable -eq "yes")
+            {
+                Execute-NuGet pack $projectFile -Symbols -Build -Version $buildNumber
+            }
+            elseif ($Development -eq "no")
+            {
+                Execute-NuGet pack $projectFile -Symbols -Build -Version "$buildNumber-prerelease"
+            }			            
+            else
+            {
+                Execute-NuGet pack $projectFile -Symbols -Build -Version "$buildNumber-prerelease"
+            }
 
             # Push the package.
             $nupkgFiles = Get-ChildItem .\*.nupkg -Recurse | Select -First 1 
