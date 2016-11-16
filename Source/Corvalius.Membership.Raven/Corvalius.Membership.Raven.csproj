@@ -129,7 +129,6 @@
     <Compile Include="RoleEntity.cs" />
     <Compile Include="SimpleRoleProvider.cs" />
     <Compile Include="RolesIndex.cs" />
-    <Compile Include="TakeNewestConflictResolutionListener.cs" />
     <Compile Include="TokenEntity.cs" />
     <Compile Include="Resources.cs" />
     <Compile Include="SimpleMembershipProvider.cs" />

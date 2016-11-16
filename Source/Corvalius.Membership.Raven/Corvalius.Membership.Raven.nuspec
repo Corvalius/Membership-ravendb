@@ -8,7 +8,7 @@
     <projectUrl>https://github.com/Corvalius/Membership-ravendb</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Corvalius Simple Membership Provider for RavenDB. The source code also has an example using MVC 4 that supports the entire functionality.</description>
-    <copyright>Copyright Corvalius 2014</copyright>
+    <copyright>Copyright Corvalius 2016</copyright>
     <tags>membership, ravendb</tags>
     <dependencies>
       <dependency id="DotNetOpenAuth.AspNet" version="4.3.4.13329" />
